@@ -1,3 +1,6 @@
 @import "./feedback";
 @import "./circular_progress";
 @import "./hierarchy_chart";
+body {
+    background-color: #fffbe6 !important; /* light yellow - easy to spot */
+}
