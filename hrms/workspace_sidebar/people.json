@@ -10,18 +10,6 @@
   {
    "child": 0,
    "collapsible": 1,
-   "icon": "home",
-   "indent": 0,
-   "keep_closed": 0,
-   "label": "Home",
-   "link_to": "People",
-   "link_type": "Workspace",
-   "show_arrow": 0,
-   "type": "Link"
-  },
-  {
-   "child": 0,
-   "collapsible": 1,
    "icon": "layout-dashboard",
    "indent": 0,
    "keep_closed": 0,
@@ -82,17 +70,6 @@
    "collapsible": 1,
    "indent": 0,
    "keep_closed": 0,
-   "label": "Branch",
-   "link_to": "Branch",
-   "link_type": "DocType",
-   "show_arrow": 0,
-   "type": "Link"
-  },
-  {
-   "child": 1,
-   "collapsible": 1,
-   "indent": 0,
-   "keep_closed": 0,
    "label": "Department",
    "link_to": "Department",
    "link_type": "DocType",
@@ -122,13 +99,14 @@
    "type": "Link"
   },
   {
-   "child": 1,
+   "child": 0,
    "collapsible": 1,
+   "icon": "home",
    "indent": 0,
    "keep_closed": 0,
-   "label": "Employee Grade",
-   "link_to": "Employee Grade",
-   "link_type": "DocType",
+   "label": "Reports",
+   "link_to": "People",
+   "link_type": "Workspace",
    "show_arrow": 0,
    "type": "Link"
   },
