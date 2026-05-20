@@ -1,10 +1,61 @@
 @import "./feedback";
 @import "./circular_progress";
 @import "./hierarchy_chart";
-body {
-    background-color: #fffbe6 !important; /* light yellow - easy to spot */
+
+/* ── Scout HR Branding ── */
+
+/* Primary blue color overrides */
+:root {
+    --primary: #1A3C6E;
+    --primary-color: #1A3C6E;
+    --btn-primary: #1A3C6E;
 }
 
+/* Navbar - top bar */
+.navbar {
+    background-color: #1A3C6E !important;
+}
+
+.navbar .navbar-brand img {
+    display: none; /* hide Frappe logo */
+}
+
+.navbar .navbar-brand::after {
+    content: "Scout HR";
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Sidebar */
 .body-sidebar-container {
-    background-color: red !important; /* red - easy to spot */
+    background-color: #f8fafc !important;
+}
+
+.sidebar-item.selected {
+    background-color: #DBEAFE !important;
+    color: #1A3C6E !important;
+}
+
+/* Primary buttons */
+.btn-primary {
+    background-color: #1A3C6E !important;
+    border-color: #1A3C6E !important;
+}
+
+.btn-primary:hover {
+    background-color: #2563EB !important;
+    border-color: #2563EB !important;
+}
+
+/* Links */
+a {
+    color: #1A3C6E;
+}
+
+/* Active/selected states */
+.form-tabs .nav-item .nav-link.active {
+    color: #1A3C6E !important;
+    border-bottom-color: #1A3C6E !important;
 }
