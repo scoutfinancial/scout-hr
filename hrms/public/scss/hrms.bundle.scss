@@ -59,3 +59,20 @@ a {
     color: #1A3C6E !important;
     border-bottom-color: #1A3C6E !important;
 }
+/* Override Frappe HR green with Scout blue */
+:root {
+    --primary: #2563EB !important;
+    --primary-color: #2563EB !important;
+}
+
+.sidebar-item .workspace-sidebar-icon svg,
+.workspace-sidebar-icon {
+    color: #2563EB !important;
+    fill: #2563EB !important;
+}
+
+.indicator-pill.green,
+.indicator.green {
+    background-color: #DBEAFE !important;
+    color: #1A3C6E !important;
+}
