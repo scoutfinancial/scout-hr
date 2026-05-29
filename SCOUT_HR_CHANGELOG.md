@@ -47,8 +47,8 @@ A running record of all code-level changes made to the `scoutfinancial/scout-hr`
 - **Modules kept visible:** HR Setup, Leaves, People.
 - **How to revert:** Set `"hidden"` back to `0` in each file, commit, push, and redeploy. (Nothing is deleted — data and functionality remain intact.)
 - **Deploy step required:** After push, run bench update / migrate on Frappe Cloud for the change to take effect.
-- **Commit hash:** _(to be added after push)_
-
+- - **Commit hash:** f9141d7ed
+-   **Status:** ✅ Pushed to branch (not yet deployed)
 ---
 
 ### 2026-05-30 — [PLANNED] Fix login redirect to People workspace
