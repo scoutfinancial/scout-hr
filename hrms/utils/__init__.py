@@ -60,3 +60,12 @@ def get_employee_email(employee_id: str) -> str | None:
 		or employee_emails.company_email
 		or employee_emails.personal_email
 	)
+
+
+def set_home_page_to_people(login_manager=None):
+	"""Force every user to land on the People (Human Resource) dashboard on each login,
+	ignoring the last-visited page."""
+	import frappe
+
+	target = "/app/dashboard-view/Human Resource"
+	frappe.local.response["home_page"] = target
