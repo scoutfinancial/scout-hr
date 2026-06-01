@@ -72,8 +72,6 @@ doctype_js = {
 # 	"Role": "home_page"
 # }
 
-# Force all users to the People (Human Resource) dashboard on every login
-on_session_creation = "hrms.utils.set_home_page_to_people"
 
 calendars = ["Leave Application"]
 
