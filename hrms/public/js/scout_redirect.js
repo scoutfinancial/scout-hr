@@ -1,20 +1,36 @@
-// Scout HR: redirect users to the correct workspace on first login.
-// Fires once per browser session, then lets the user navigate freely.
-frappe.after_ajax(() => {
+// Scout HR — redirect users to their correct workspace on login.
+// Module-level flag resets on every full page load (including after login)
+// but persists through SPA navigation so users can browse freely.
+let _scoutRedirected = false;
+
+frappe.after_ajax(function () {
 	try {
-		if (frappe.boot && frappe.session && frappe.session.user && frappe.session.user !== "Guest") {
-			if (!sessionStorage.getItem("scout_landed")) {
-				sessionStorage.setItem("scout_landed", "1");
-				const roles = frappe.boot.user.roles || [];
-				if (roles.includes("System Manager") || roles.includes("HR Manager")) {
-					window.location.href = "/app/people";
-				} else if (roles.includes("Employee Self Service")) {
-					window.location.href = "/app/employee-self-service";
-				}
-			}
+		if (_scoutRedirected) return;
+		if (!frappe.session || frappe.session.user === "Guest") return;
+		if (!frappe.boot || !frappe.boot.user || !frappe.boot.user.roles) return;
+
+		const roles = frappe.boot.user.roles;
+		let target = null;
+
+		if (roles.includes("System Manager") || roles.includes("HR Manager")) {
+			target = "people";
+		} else if (roles.includes("Employee Self Service")) {
+			target = "employee-self-service";
 		}
+
+		if (!target) { _scoutRedirected = true; return; }
+
+		// Already on the correct workspace — allow free navigation
+		const route = frappe.get_route ? frappe.get_route() : [];
+		if (route && route[0] === target) {
+			_scoutRedirected = true;
+			return;
+		}
+
+		_scoutRedirected = true;
+		frappe.set_route(target);
+
 	} catch (e) {
-		// fail silently; never block desk load
 		console.error("Scout redirect error:", e);
 	}
 });
