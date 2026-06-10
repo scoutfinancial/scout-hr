@@ -184,7 +184,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-01-09 18:00:59.928738",
+ "modified": "2026-06-11 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Recruitment",
@@ -199,7 +199,11 @@
    "quick_list_filter": "{\"scheduled_on\":[\"Timespan\",\"this week\"],\"docstatus\":[\"!=\",\"2\"]}"
   }
  ],
- "roles": [],
+ "roles": [
+  {
+   "role": "HR Manager"
+  }
+ ],
  "sequence_id": 3.0,
  "shortcuts": [],
  "title": "Recruitment",

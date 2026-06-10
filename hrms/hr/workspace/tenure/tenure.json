@@ -214,7 +214,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-01-09 17:45:33.210388",
+ "modified": "2026-06-11 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Tenure",
@@ -239,7 +239,11 @@
    "quick_list_filter": "{\"relieving_date\":[\"Timespan\",\"this month\"]}"
   }
  ],
- "roles": [],
+ "roles": [
+  {
+   "role": "HR Manager"
+  }
+ ],
  "sequence_id": 2.0,
  "shortcuts": [],
  "title": "Tenure",
