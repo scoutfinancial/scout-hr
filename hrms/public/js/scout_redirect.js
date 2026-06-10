@@ -13,7 +13,7 @@ frappe.after_ajax(function () {
 		let target = null;
 
 		if (roles.includes("System Manager") || roles.includes("HR Manager")) {
-			target = "people";
+			target = "dashboard-view/Human Resource";
 		} else if (roles.includes("Employee Self Service")) {
 			target = "employee-self-service";
 		}
