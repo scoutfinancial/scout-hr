@@ -1,0 +1,34 @@
+{
+ "actions": [],
+ "autoname": "field:document_name",
+ "creation": "2026-06-11 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["document_name", "category", "company", "column_break_1", "is_required", "is_employee_upload", "section_break_desc", "description", "employee_instructions"],
+ "fields": [
+  {"fieldname": "document_name", "fieldtype": "Data", "in_list_view": 1, "label": "Document Name", "reqd": 1, "unique": 0},
+  {"fieldname": "category", "fieldtype": "Select", "in_list_view": 1, "label": "Category", "options": "\nHR Paperwork\nEmployee Agreements\nCalifornia State Forms\nRequired Training\nOrientation", "reqd": 1},
+  {"fieldname": "company", "fieldtype": "Link", "in_list_view": 1, "label": "Company", "options": "Company", "reqd": 1},
+  {"fieldname": "column_break_1", "fieldtype": "Column Break"},
+  {"default": "1", "fieldname": "is_required", "fieldtype": "Check", "label": "Is Required"},
+  {"default": "1", "fieldname": "is_employee_upload", "fieldtype": "Check", "label": "Employee Must Upload File"},
+  {"fieldname": "section_break_desc", "fieldtype": "Section Break", "label": "Details"},
+  {"fieldname": "description", "fieldtype": "Small Text", "label": "Description"},
+  {"fieldname": "employee_instructions", "fieldtype": "Text", "label": "Instructions for Employee"}
+ ],
+ "links": [],
+ "modified": "2026-06-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Scout Document Type",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "HR Manager", "share": 1, "write": 1},
+  {"read": 1, "role": "Employee Self Service"}
+ ],
+ "sort_field": "category",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}
