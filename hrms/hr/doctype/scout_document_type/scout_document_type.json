@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "autoname": "field:document_name",
  "creation": "2026-06-11 00:00:00.000000",
  "doctype": "DocType",
