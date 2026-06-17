@@ -30,6 +30,52 @@ A running record of all code-level changes made to the `scoutfinancial/scout-hr`
 
 ## Change History
 
+### 2026-06-16 — Part 2: Onboarding template & document submission doctypes
+
+- **Branch:** version-16
+- **Status:** ✅ Deployed and verified
+- **Commits:** 44015c121, b4c933b80
+- **What changed:** Added three new doctypes to support employee onboarding document tracking:
+  - `Scout Onboarding Template` (parent) — named template per company, holds a child table of required documents. Fields: template_name, company, is_active, description, documents (child table).
+  - `Scout Onboarding Template Item` (child table, istable:1) — one row per required document. Fields: document_type (link to Scout Document Type), is_required.
+  - `Scout Employee Document Submission` — tracks one document per employee. Fields: employee, employee_name (fetched), company (fetched), document_type, status (Pending/Submitted/Approved/Rejected), uploaded_file, submitted_date, reviewed_by, reviewed_date, hr_notes. Includes a `before_save` controller: auto-stamps reviewer + date on Approve/Reject, and auto-moves status to Submitted when a file is attached.
+- **Files added:** 9 files across `hrms/hr/doctype/scout_onboarding_template/`, `scout_onboarding_template_item/`, and `scout_employee_document_submission/`.
+- **Why:** Foundation for the employee-facing onboarding document checklist (Part 2 of the document portal). HR defines a template once; future work auto-generates a per-employee checklist from it.
+- **Issue encountered & fixed:** Initial commit (44015c121) placed the submission files in the wrong folder and created a junk file with no extension. Fixed in b4c933b80 by moving files to the correct folder and recreating the controller. Verified committed content is correct.
+- **Verified:** All three doctypes live. Created test template "Mae Malai Standard Onboarding" with 3 documents (I-9, W-4, Food Handler Card) — parent + child table relationship confirmed working.
+- **How to revert:** Delete the three doctype folders, commit, push, redeploy. Then remove the doctype records + tables via bench if needed.
+- **Permissions:** HR Manager has full CRUD + import on template and submission. Employee Self Service has read + write on submission (for future employee uploads).
+
+---
+
+### 2026-06-11 — Part 1: Scout Document Type doctype + Mae Malai documents
+
+- **Branch:** version-16
+- **Status:** ✅ Deployed and verified
+- **Commits:** 898ab7ef1, 37a72afc1, 4d11763f9, aac5ea0b1
+- **What changed:** Added `Scout Document Type` doctype — the master list of required onboarding documents per company. Fields: document_name, category (HR Paperwork / Employee Agreements / California State Forms / Required Training / Orientation), company, is_required, is_employee_upload, description, employee_instructions.
+- **Files added:** `hrms/hr/doctype/scout_document_type/` (3 files).
+- **Why:** First building block of the custom employee onboarding document portal. Replaces the unsuitable native Frappe Employee Onboarding (which is tied to recruitment).
+- **Follow-up fixes:** Removed a stray `__init__.py` accidentally committed to repo root (37a72afc1). Added `allow_import: 1` (4d11763f9) and `import` permission for HR Manager (aac5ea0b1) to enable CSV bulk import.
+- **Data loaded:** All 19 of Mae Malai's onboarding documents — I-9 created manually, remaining 18 bulk-imported via CSV (Data Import tool).
+- **How to revert:** Delete the doctype folder, commit, push, redeploy.
+
+---
+
+### 2026-06-11 — Workspace role restrictions, ESS workspace & login redirect
+
+- **Branch:** version-16
+- **Status:** ✅ Deployed and verified
+- **Commits:** f6b8e1305, 2081ac20c, 60c83348d, 89dee471e, ef67a2abe, e18ab0738
+- **What changed:**
+  - Restricted all 7 HR management workspaces to `HR Manager` role only (People, Payroll, Leaves, Expenses, Performance, Recruitment, Tenure) by adding a `roles` entry to each workspace JSON. Previously visible to all users.
+  - Created a new minimal `Employee Self Service` workspace (`hrms/hr/workspace/employee_self_service/`) visible only to the Employee Self Service role. Shows three cards: My Leaves (Leave Application), My Payslips (Salary Slip), My Profile (Employee record — edit details + attach files).
+  - Updated `scout_redirect.js` to route by role on login: HR Manager / System Manager → dashboard-view/Human Resource; Employee Self Service → /desk/employee-self-service. Changed from sessionStorage to a module-level flag so it fires fresh on every login.
+- **Why:** Employees were seeing the full HR dashboard and could navigate into management workspaces. Now data AND display are both scoped by role.
+- **Verified:** Anuchit (HR Manager) lands on HR dashboard with full access. Ananya (Employee) lands on ESS workspace, sees only her 3 cards, cannot reach any management workspace.
+- **Known open item:** Login URL still shows a `redirect-to` parameter pointing to the last visited page. Does not affect where users land (redirect script overrides it) but to be cleaned up later.
+- **How to revert:** Remove the `roles` entries from the 7 workspace JSONs, delete the ESS workspace folder, revert scout_redirect.js. Commit, push, redeploy.
+
 ### 2026-05-30 — Hide non-MVP modules from Frappe HR launcher grid
 
 - **Branch:** version-16 (production branch tracked by the bench)
