@@ -1,36 +1,33 @@
-// Scout HR — redirect users to their correct workspace on login.
-// Module-level flag resets on every full page load (including after login)
-// but persists through SPA navigation so users can browse freely.
-let _scoutRedirected = false;
-
+// Scout HR — redirect users to their correct workspace ONCE per login.
+// Uses sessionStorage so the redirect survives page reloads (incl. hard refresh)
+// and only fires again after an actual logout / new session.
 frappe.after_ajax(function () {
-	try {
-		if (_scoutRedirected) return;
-		if (!frappe.session || frappe.session.user === "Guest") return;
-		if (!frappe.boot || !frappe.boot.user || !frappe.boot.user.roles) return;
+        try {
+                if (!frappe.session || frappe.session.user === "Guest") return;
+                if (!frappe.boot || !frappe.boot.user || !frappe.boot.user.roles) return;
 
-		const roles = frappe.boot.user.roles;
-		let target = null;
+                // Scope the flag to the current user so switching accounts re-triggers.
+                const flagKey = "scout_redirected_" + frappe.session.user;
+                if (sessionStorage.getItem(flagKey)) return;
 
-		if (roles.includes("System Manager") || roles.includes("HR Manager")) {
-			target = "dashboard-view/Human Resource";
-		} else if (roles.includes("Employee Self Service")) {
-			target = "employee-self-service";
-		}
+                const roles = frappe.boot.user.roles;
+                let target = null;
+                if (roles.includes("System Manager") || roles.includes("HR Manager")) {
+                        target = "dashboard-view/Human Resource";
+                } else if (roles.includes("Employee Self Service")) {
+                        target = "employee-self-service";
+                }
 
-		if (!target) { _scoutRedirected = true; return; }
+                // No target role: mark done so we never check again this session.
+                if (!target) {
+                        sessionStorage.setItem(flagKey, "1");
+                        return;
+                }
 
-		// Already on the correct workspace — allow free navigation
-		const route = frappe.get_route ? frappe.get_route() : [];
-		if (route && route[0] === target) {
-			_scoutRedirected = true;
-			return;
-		}
-
-		_scoutRedirected = true;
-		frappe.set_route(target);
-
-	} catch (e) {
-		console.error("Scout redirect error:", e);
-	}
+                // Mark done FIRST, then route — so the post-route reload won't re-fire.
+                sessionStorage.setItem(flagKey, "1");
+                frappe.set_route(target);
+        } catch (e) {
+                console.error("Scout redirect error:", e);
+        }
 });
