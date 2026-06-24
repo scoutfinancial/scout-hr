@@ -136,17 +136,21 @@ def generate_signing_session(employee: str, document_type: str) -> dict:
         ]
 
     payload = {
-        "access_key": api_key,
-        "business_id": business_id,
         "template_id": template_id,
         "embedded_signing_enabled": 1,   # REQUIRED for iframe embedding
         "title": document_type,
         "signers": signers,
     }
 
+    # Xodo/eversign authenticates via GET params on the URL, NOT the JSON body.
+    # access_key and business_id must be in the query string or the API
+    # rejects the call with code 101 "missing_access_key" before reading body.
+    auth_params = {"access_key": api_key, "business_id": business_id}
+
     try:
         resp = requests.post(
             f"{XODO_API_BASE}/document",
+            params=auth_params,
             data=json.dumps(payload),
             headers={"Content-Type": "application/json"},
             timeout=30,
