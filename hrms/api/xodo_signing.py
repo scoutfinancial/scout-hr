@@ -48,7 +48,7 @@ XODO_API_BASE = "https://api.eversign.com"
 # would send every employee's doc to TEST_EMAIL — so this MUST flip before
 # any real employee uses it.
 # ---------------------------------------------------------------------------
-TEST_MODE = True
+TEST_MODE = False
 TEST_EMAIL = "ms.nikkirosario@gmail.com"   # test signer inbox — receives the real envelope
 
 TEST_MANAGER_EMAIL = "ms.nikkirosario+manager@gmail.com"  # Gmail plus-alias: same inbox, distinct address so Xodo accepts two signers
