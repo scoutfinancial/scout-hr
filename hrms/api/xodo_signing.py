@@ -51,6 +51,8 @@ XODO_API_BASE = "https://api.eversign.com"
 TEST_MODE = True
 TEST_EMAIL = "ms.nikkirosario@gmail.com"   # test signer inbox — receives the real envelope
 
+TEST_MANAGER_EMAIL = "ms.nikkirosario+manager@gmail.com"  # Gmail plus-alias: same inbox, distinct address so Xodo accepts two signers
+
 # ---------------------------------------------------------------------------
 # Placeholder template IDs. Replace each with the REAL template_id from your
 # Xodo dashboard once the templates are finished (and built on the correct
@@ -123,7 +125,7 @@ def generate_signing_session(employee: str, document_type: str) -> dict:
             frappe.throw(_("Set TEST_EMAIL to your own inbox before testing."))
         signers = [
             {"role": "Employee", "name": "Test Employee", "email": TEST_EMAIL},
-            {"role": "Manager",  "name": "Test Manager",  "email": TEST_EMAIL},
+            {"role": "Manager",  "name": "Test Manager",  "email": TEST_MANAGER_EMAIL},
         ]
     else:
         # Production wiring (not exercised yet): real employee on Employee role,
