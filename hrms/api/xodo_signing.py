@@ -62,9 +62,15 @@ TEMPLATE_IDS = {
     # only fills the Employee role; the Manager counter-signs afterward.
     "Employee Technology Responsibility Agreement": "73ebec4906e74f71a627c35fa690ee43",
 
+    # TEST-ONLY MAPPING: points the existing W-4 submission record at the SAME
+    # real template so we can prove the embed plumbing against a record that
+    # already exists. The template behind this ID is the Technology Agreement,
+    # NOT an actual W-4 — this mapping is for the plumbing test only and must
+    # be replaced with the real W-4 template ID before any real use.
+    "W-4, Federal Tax Withholding": "73ebec4906e74f71a627c35fa690ee43",
+
     # Still to be built on the correct 05/31/2027-expiration I-9, etc.:
     "I-9, Employment Eligibility Verification": "PLACEHOLDER_I9_TEMPLATE_ID",
-    "W-4, Federal Tax Withholding":             "PLACEHOLDER_W4_TEMPLATE_ID",
     # upload-only docs (e.g. CA Food Handler Card) do NOT belong here —
     # they are not fill-and-sign and stay on the upload flow.
 }
