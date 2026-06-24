@@ -202,7 +202,10 @@ def _resolve_manager_email(emp) -> str:
     address per company. Left unimplemented on purpose so the choice is made
     deliberately rather than defaulted.
     """
-    frappe.throw(_(
-        "Manager email resolution is not configured. Wire _resolve_manager_email "
-        "before setting TEST_MODE = False."
-    ))
+    company_hr_email = frappe.db.get_value("Company", emp.company, "custom_hr_signing_email")
+    if not company_hr_email:
+        frappe.throw(_(
+            "No HR Signing Email is set for company {0}. Set it on the Company "
+            "record (HR & Payroll tab) before signing."
+        ).format(emp.company))
+    return company_hr_email
