@@ -114,3 +114,33 @@ A running record of all code-level changes made to the `scoutfinancial/scout-hr`
 - **2026-05-30:** Chose Git-only workflow (no local bench) because dev machine is Windows and Frappe doesn't run natively on Windows. Testing happens on Frappe Cloud rather than locally.
 - **2026-05-30:** Confirmed the green-icon launcher grid is driven by `Desktop Icon` DocType fixtures in `hrms/desktop_icon/`, NOT standard Frappe workspaces. This is why the UI "Is Hidden" toggle on workspaces did not remove icons from the grid.
 - The left-sidebar contents (when inside a module) are driven separately by `hrms/workspace_sidebar/` fixtures.
+---
+### 2026-06-26 — Employee Self Service: /me login trap fixed + permission popups resolved
+- **Branch:** version-16
+- **Status:** ✅ Live (DB changes + reverted deploy)
+- **Context:** After Ananya (HR-EMP-00007) was set to the Employee Self Service user type, login dropped her on the `/me` account page and "Home" looped back to it. She could only reach her workspace by typing the URL. Two permission popups also fired on list views.
+
+- **Fix 1 — /me login trap (RESOLVED):**
+  - Root cause: `/me` is a non-Desk web page; login lands ESS users there because the user type has no resolved desk home. Ruled out (and reverted) several non-fixes first: per-user `default_workspace` (blank for ALL users site-wide, not the cause), User Type table (no home column), System Settings / Website Settings `home_page` (both empty).
+  - Working fix: set `home_page` on the **Employee Self Service ROLE** (same mechanism HR User already uses: `home_page = /desk/dashboard-view/Human%20Resource`).
+  - SQL: `UPDATE tabRole SET home_page = '/app/employee-self-service' WHERE name = 'Employee Self Service';`
+  - Verified: Ananya now lands on her Employee Self Service workspace on login. Safe — only one real user holds this role; privileged users do not.
+  - **Note:** This corrects the 2026-05-30 [PLANNED] entry's claim that role Home Page "failed." It failed for HR users (last-route restore), but WORKS for the ESS role/user type.
+
+- **Fix 2 — "Insufficient Permission for List Filter" popup (RESOLVED):**
+  - Root cause: becoming an ESS user strips the Desk User role; `List Filter` grants read only to Desk User.
+  - Fix: inserted DocPerm row `essf-listfilter-02` (role Employee Self Service, read on List Filter), then rebuilt cache via Customize Form → List Filter → Update.
+
+- **Fix 3 — "Insufficient Permission for Kanban Board" popup (RESOLVED):**
+  - Same root cause/pattern as List Filter.
+  - Fix: inserted DocPerm row `essf-kanban-01` (role Employee Self Service, read on Kanban Board), then rebuilt cache via Customize Form → Kanban Board → Update.
+
+- **ESS route guard — attempted again, reverted:**
+  - Rewrote `hrms/public/js/employee_self_service_guard.js` as a minimal, boot-gated, home-only redirect (commit `b1244e15b`). Did NOT fire — `app_include_js` only loads inside Desk; the `/me` page is outside Desk, so the guard never ran there.
+  - Reverted with `git revert` (commit `8286ff80d`), redeployed. Guard is OFF again. The role `home_page` fix (Fix 1) solved the trap instead — no guard needed for the /me case.
+
+- **Working rule adopted:** if a fix does not work, REVERT it immediately before trying the next thing, so edits never stack on top of dead ends.
+
+- **Still open:** `/desk` app grid + workspace switcher still reachable by ESS employees (the guard's original purpose — deferred). Watch for further Desk-User-only helper doctypes throwing the same popup; fix reactively with the same DocPerm + Customize Form pattern.
+
+- **Commit hashes:** `b1244e15b` (guard rewrite, reverted), `8286ff80d` (revert)
