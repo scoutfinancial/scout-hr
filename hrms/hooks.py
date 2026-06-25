@@ -27,7 +27,7 @@ add_to_apps_screen = [
 app_include_js = [
 	"hrms.bundle.js",
 	"/assets/hrms/js/employee_checklist_button.js",
-	"/assets/hrms/js/employee_self_service_guard.js",
+	#"/assets/hrms/js/employee_self_service_guard.js",
 ]
 app_include_css = "hrms.bundle.css"
 
