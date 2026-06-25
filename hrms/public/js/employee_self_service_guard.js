@@ -1,14 +1,19 @@
-// Employee Self Service route guard (minimal, home-only)
-// Sends a restricted employee from the bare desk home / app grid to their
-// own workspace. Does NOT touch workspace, list, or form routes, so it can
-// never interrupt the workspace's own render.
-// Privileged roles (HR Manager, System Manager, Administrator) are exempt.
+// Employee Self Service route guard
+// Keeps restricted employees confined to their own workspace + allowed doctypes.
+// Privileged roles (HR Manager, System Manager, Administrator) are never affected.
 
 frappe.provide("scout_hr");
 
 scout_hr.ess_guard = {
+	// Workspace an employee is sent to when they stray.
 	home_route: "employee-self-service",
-	redirected: false,
+
+	// Doctypes an employee is allowed to open (list or form).
+	allowed_doctypes: [
+		"Employee",
+		"Scout Employee Document Submission",
+		"Leave Application",
+	],
 
 	is_privileged: function () {
 		var roles = frappe.user_roles || [];
@@ -19,61 +24,52 @@ scout_hr.ess_guard = {
 		);
 	},
 
-	boot_ready: function () {
-		return (
-			frappe.boot &&
-			frappe.session &&
-			frappe.session.user &&
-			frappe.user_roles &&
-			frappe.user_roles.length > 0
-		);
-	},
-
-	is_home_or_grid: function () {
-		var route = frappe.get_route() || [];
-		var type = route[0];
-		// Bare home (empty) or the desk app grid only.
-		return (
-			type === undefined ||
-			type === "" ||
-			type === "desk" ||
-			type === "apps" ||
-			type === "app"
-		);
+	slugify: function (name) {
+		return (name || "").toLowerCase().replace(/\s+/g, "-");
 	},
 
 	check: function () {
-		if (this.redirected) {
-			return;
-		}
-		if (!this.boot_ready()) {
-			return;
-		}
 		if (this.is_privileged()) {
 			return;
 		}
-		if (this.is_home_or_grid()) {
-			this.redirected = true;
-			frappe.set_route("Workspaces", this.home_route);
+
+		var route = frappe.get_route() || [];
+		var type = route[0];
+
+		// Allow the employee's own workspace.
+		if (type === "Workspaces") {
+			if (this.slugify(route[1]) !== this.home_route) {
+				this.redirect();
+			}
+			return;
 		}
+
+		// Allow list/form views only for whitelisted doctypes.
+		if (type === "List" || type === "Form") {
+			if (this.allowed_doctypes.indexOf(route[1]) === -1) {
+				this.redirect();
+			}
+			return;
+		}
+
+		// Anything else (desk home, reports, other pages) is blocked.
+		if (type === "" || type === "desk" || type === "app" || type === undefined) {
+			this.redirect();
+			return;
+		}
+
+		this.redirect();
 	},
 
-	start: function () {
-		var self = this;
-		var tries = 0;
-		var timer = setInterval(function () {
-			tries += 1;
-			if (self.boot_ready()) {
-				clearInterval(timer);
-				self.check();
-			} else if (tries > 40) {
-				// Give up after ~10s; never block indefinitely.
-				clearInterval(timer);
-			}
-		}, 250);
+	redirect: function () {
+		frappe.set_route("Workspaces", this.home_route);
 	},
 };
 
-$(document).ready(function () {
-	scout_hr.ess_guard.start();
+$(document).on("app_ready", function () {
+	scout_hr.ess_guard.check();
+});
+
+frappe.router.on("change", function () {
+	scout_hr.ess_guard.check();
 });
