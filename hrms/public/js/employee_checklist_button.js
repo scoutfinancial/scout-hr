@@ -1,5 +1,10 @@
 frappe.ui.form.on("Employee", {
     refresh: function (frm) {
+        // Only HR Managers should see this button
+        if (!frappe.user_roles.includes("HR Manager")) {
+            return;
+        }
+
         // Only show the button for saved (existing) employee records
         if (frm.is_new()) {
             return;
