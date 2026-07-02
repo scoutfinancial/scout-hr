@@ -1,75 +1,44 @@
-// Employee Self Service route guard
-// Keeps restricted employees confined to their own workspace + allowed doctypes.
-// Privileged roles (HR Manager, System Manager, Administrator) are never affected.
-
+// Scout HR — hide privileged navigation menu items from non-Scout users.
+// Layer 1: cosmetic only. Hides "Desktop", "Workspaces", and "Website"
+// entries from the app menu unless the user is Scout team.
+// No redirects, no route interception — safe, cannot loop.
 frappe.provide("scout_hr");
 
-scout_hr.ess_guard = {
-	// Workspace an employee is sent to when they stray.
-	home_route: "employee-self-service",
+scout_hr.nav_hider = {
+    is_scout_team: function () {
+        var roles = frappe.user_roles || [];
+        return (
+            frappe.session.user === "Administrator" ||
+            roles.indexOf("System Manager") !== -1 ||
+            roles.indexOf("Scout HR Manager") !== -1
+        );
+    },
 
-	// Doctypes an employee is allowed to open (list or form).
-	allowed_doctypes: [
-		"Employee",
-		"Scout Employee Document Submission",
-		"Leave Application",
-	],
+    hidden_labels: ["Desktop", "Workspaces", "Website"],
 
-	is_privileged: function () {
-		var roles = frappe.user_roles || [];
-		return (
-			frappe.session.user === "Administrator" ||
-			roles.indexOf("HR Manager") !== -1 ||
-			roles.indexOf("System Manager") !== -1
-		);
-	},
-
-	slugify: function (name) {
-		return (name || "").toLowerCase().replace(/\s+/g, "-");
-	},
-
-	check: function () {
-		if (this.is_privileged()) {
-			return;
-		}
-
-		var route = frappe.get_route() || [];
-		var type = route[0];
-
-		// Allow the employee's own workspace.
-		if (type === "Workspaces") {
-			if (this.slugify(route[1]) !== this.home_route) {
-				this.redirect();
-			}
-			return;
-		}
-
-		// Allow list/form views only for whitelisted doctypes.
-		if (type === "List" || type === "Form") {
-			if (this.allowed_doctypes.indexOf(route[1]) === -1) {
-				this.redirect();
-			}
-			return;
-		}
-
-		// Anything else (desk home, reports, other pages) is blocked.
-		if (type === "" || type === "desk" || type === "app" || type === undefined) {
-			this.redirect();
-			return;
-		}
-
-		this.redirect();
-	},
-
-	redirect: function () {
-		frappe.set_route("Workspaces", this.home_route);
-	},
+    hide: function () {
+        if (this.is_scout_team()) {
+            return;
+        }
+        var self = this;
+        $(".dropdown-menu a, .dropdown-menu .dropdown-item, .sidebar-menu a").each(function () {
+            var text = ($(this).text() || "").trim();
+            for (var i = 0; i < self.hidden_labels.length; i++) {
+                if (text === self.hidden_labels[i]) {
+                    $(this).closest("li, .dropdown-item").hide();
+                    $(this).hide();
+                }
+            }
+        });
+    },
 };
 
 $(document).on("app_ready", function () {
-	scout_hr.ess_guard.check();
+    scout_hr.nav_hider.hide();
 });
 
 frappe.router.on("change", function () {
-	scout_hr.ess_guard.check();
+    setTimeout(function () {
+        scout_hr.nav_hider.hide();
+    }, 300);
 });
