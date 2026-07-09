@@ -54,27 +54,22 @@ TEST_EMAIL = "ms.nikkirosario@gmail.com"   # test signer inbox — receives the 
 TEST_MANAGER_EMAIL = "ms.nikkirosario+manager@gmail.com"  # Gmail plus-alias: same inbox, distinct address so Xodo accepts two signers
 
 # ---------------------------------------------------------------------------
-# Placeholder template IDs. Replace each with the REAL template_id from your
-# Xodo dashboard once the templates are finished (and built on the correct
-# 05/31/2027-expiration I-9). Keyed by Scout Document Type name.
+# Real Xodo/eversign template IDs (subdomain: scoutfin). Keyed by the EXACT
+# Scout Document Type name in Frappe — the lookup matches on this string, so
+# any typo means "no template configured" at runtime.
+#
+# NOTE: these are LIVE templates. Do NOT let a real employee sign the tax /
+# immigration forms (I-9, W-4, DE-4, W-9) until the security review and API
+# key rotation are complete — those collect SSNs.
 # ---------------------------------------------------------------------------
 TEMPLATE_IDS = {
-    # REAL template (Xodo subdomain: scoutfin). Two signer roles on this one:
-    # "Employee" (step 1) and "Manager" (step 2). The embedded session below
-    # only fills the Employee role; the Manager counter-signs afterward.
-    "Employee Technology Responsibility Agreement": "73ebec4906e74f71a627c35fa690ee43",
-
-    # TEST-ONLY MAPPING: points the existing W-4 submission record at the SAME
-    # real template so we can prove the embed plumbing against a record that
-    # already exists. The template behind this ID is the Technology Agreement,
-    # NOT an actual W-4 — this mapping is for the plumbing test only and must
-    # be replaced with the real W-4 template ID before any real use.
-    "W-4, Federal Tax Withholding": "73ebec4906e74f71a627c35fa690ee43",
-
-    # Still to be built on the correct 05/31/2027-expiration I-9, etc.:
-    "I-9, Employment Eligibility Verification": "PLACEHOLDER_I9_TEMPLATE_ID",
-    # upload-only docs (e.g. CA Food Handler Card) do NOT belong here —
-    # they are not fill-and-sign and stay on the upload flow.
+    "Employee Information Sheet":                "d4a2a30efe45472e8f0b21fbd9522b10",
+    "Notice to Employee Form":                   "6e00a11b19a9484b90668aeadd704db1",
+    "I-9, Employment Eligibility Verification":  "320bac6b23d54c629c5014c128813442",
+    "Direct Deposit Authorization":              "66f6a5794f4c4f92a19af423ef853550",
+    "DE-4, California State Tax Withholding":     "eb4697e84552411cbcd323245af11a08",
+    "W-4, Federal Tax Withholding":              "dd7aeb46d6bf4b8ea5989183073bf44c",
+    "W-9":                                       "b205f67e4b7f4bdfb989895684769945",
 }
 
 
@@ -209,3 +204,4 @@ def _resolve_manager_email(emp) -> str:
             "record (HR & Payroll tab) before signing."
         ).format(emp.company))
     return company_hr_email
+    
