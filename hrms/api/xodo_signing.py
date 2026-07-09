@@ -1,25 +1,21 @@
 # hrms/api/xodo_signing.py
 #
-# Xodo Sign (formerly eversign) embedded-signing integration — SKELETON.
+# Xodo Sign (formerly eversign) embedded-signing integration.
 #
 # Flow:
 #   1. Frappe frontend calls generate_signing_session(employee, document_type)
-#   2. We look up the Xodo template_id for that document_type
-#   3. We POST to Xodo "Use Template" with embedded_signing_enabled = 1,
-#      passing the employee as the "Employee" signer role
-#   4. Xodo returns the document data incl. the embedded signing URL
-#   5. We return that URL; the browser loads it in an iframe
+#   2. We look up the eversign template_id AND its signer roles for that doc
+#   3. We POST to eversign "Use Template" with embedded_signing_enabled = 1,
+#      supplying every role the template requires (names must match exactly)
+#   4. eversign returns the document data incl. the embedded signing URL
+#   5. We return the EMPLOYEE-role URL; the browser loads it in an iframe
 #
 # SECURITY NOTES (read before going live):
 #   - API key and business_id are read from site_config.json, NEVER hardcoded.
-#     Add to site_config.json:
-#         "xodo_api_key": "...",        (use the SANDBOX key while building)
-#         "xodo_business_id": "1"
-#   - HTTPS only. Xodo requires it.
-#   - Do NOT enable this against the LIVE key or real SSNs until the
-#     security review is complete (Scout project rule).
-#   - This is a SKELETON: TEMPLATE_IDS are placeholders, error handling is
-#     minimal, and nothing here should touch production data yet.
+#   - HTTPS only. eversign requires it.
+#   - Do NOT enable this against real SSNs until the security review and API
+#     key rotation are complete (Scout project rule). The tax/immigration
+#     forms (I-9, W-4, DE-4, W-9) collect sensitive identifiers.
 
 import json
 import requests
@@ -27,40 +23,25 @@ import requests
 import frappe
 from frappe import _
 
-# Xodo / eversign REST base. HTTPS only.
+# eversign REST base. HTTPS only.
 XODO_API_BASE = "https://api.eversign.com"
 
 # ---------------------------------------------------------------------------
 # TEST MODE — live-key, single-tester safety harness.
 #
-# We are testing the embed against the LIVE key (no sandbox key available).
-# The only safe way to do that is: make YOU the only human in the loop.
-#
-# When TEST_MODE is True:
-#   - EVERY signer role (Employee AND Manager) is pointed at TEST_EMAIL,
-#     so the live two-signer template can't route a real request to anyone
-#     else and the create call won't choke on a missing Manager role.
-#   - After each test, VOID the envelope in the Xodo dashboard so it doesn't
-#     sit as an outstanding signature request and to reclaim quota.
-#
-# Set TEST_MODE = False ONLY after the embed is proven and real per-role
-# routing (real Manager email) is wired in. Shipping with TEST_MODE = True
-# would send every employee's doc to TEST_EMAIL — so this MUST flip before
-# any real employee uses it.
+# When TEST_MODE is True, EVERY signer role is pointed at a test inbox so a
+# real request can't route to anyone else. Set it to False only after the
+# embed is proven and real second-signer routing is wired. After each test,
+# VOID the envelope in the eversign dashboard.
 # ---------------------------------------------------------------------------
 TEST_MODE = False
-TEST_EMAIL = "ms.nikkirosario@gmail.com"   # test signer inbox — receives the real envelope
-
-TEST_MANAGER_EMAIL = "ms.nikkirosario+manager@gmail.com"  # Gmail plus-alias: same inbox, distinct address so Xodo accepts two signers
+TEST_EMAIL = "ms.nikkirosario@gmail.com"                  # employee-role test inbox
+TEST_MANAGER_EMAIL = "ms.nikkirosario+manager@gmail.com"  # 2nd-signer test alias (same inbox, distinct address)
 
 # ---------------------------------------------------------------------------
-# Real Xodo/eversign template IDs (subdomain: scoutfin). Keyed by the EXACT
-# Scout Document Type name in Frappe — the lookup matches on this string, so
-# any typo means "no template configured" at runtime.
-#
-# NOTE: these are LIVE templates. Do NOT let a real employee sign the tax /
-# immigration forms (I-9, W-4, DE-4, W-9) until the security review and API
-# key rotation are complete — those collect SSNs.
+# Real eversign template IDs (subdomain: scoutfin). Keyed by the EXACT Scout
+# Document Type name in Frappe — the lookup matches on this string, so any
+# typo means "no template configured" at runtime.
 # ---------------------------------------------------------------------------
 TEMPLATE_IDS = {
     "Employee Information Sheet":                "d4a2a30efe45472e8f0b21fbd9522b10",
@@ -70,6 +51,26 @@ TEMPLATE_IDS = {
     "DE-4, California State Tax Withholding":     "eb4697e84552411cbcd323245af11a08",
     "W-4, Federal Tax Withholding":              "dd7aeb46d6bf4b8ea5989183073bf44c",
     "W-9":                                       "b205f67e4b7f4bdfb989895684769945",
+}
+
+# ---------------------------------------------------------------------------
+# Signer roles per template. eversign rejects the request unless every role
+# name here matches the template EXACTLY (this is what caused the earlier
+# "Missing Required Signer with Role: Contractor" rejection).
+#
+# For each document:
+#   "employee_role" = the role the EMPLOYEE fills and signs in the browser
+#   "second_role"   = the role the Scout/HR side counter-signs (or None if
+#                     the template has only one signer)
+# ---------------------------------------------------------------------------
+SIGNER_ROLES = {
+    "Employee Information Sheet":                {"employee_role": "New Hire",   "second_role": "Employer"},
+    "Notice to Employee Form":                   {"employee_role": "New Hire",   "second_role": "Employer"},
+    "I-9, Employment Eligibility Verification":  {"employee_role": "New Hire",   "second_role": "Employer"},
+    "Direct Deposit Authorization":              {"employee_role": "New Hire",   "second_role": "Employer"},
+    "DE-4, California State Tax Withholding":     {"employee_role": "New Hire",   "second_role": "Employer"},
+    "W-4, Federal Tax Withholding":              {"employee_role": "New Hire",   "second_role": "Employer"},
+    "W-9":                                       {"employee_role": "Contractor", "second_role": "Employer"},
 }
 
 
@@ -88,49 +89,40 @@ def generate_signing_session(employee: str, document_type: str) -> dict:
     Create an embedded signing session for `employee` to fill `document_type`.
     Returns {"embedded_signing_url": "...", "document_hash": "..."}.
 
-    Called from the employee self-service page. Frappe enforces that the
-    logged-in user can only act on their own employee record via the existing
-    User Permission (Employee = their own record), so an employee cannot
-    generate a session for someone else.
+    Frappe enforces (via the existing User Permission) that the logged-in
+    employee can only act on their own record, so no one can generate a
+    session for someone else.
     """
     api_key, business_id = _get_credentials()
 
     template_id = TEMPLATE_IDS.get(document_type)
     if not template_id or template_id.startswith("PLACEHOLDER"):
-        frappe.throw(_("No Xodo template is configured for {0}.").format(document_type))
+        frappe.throw(_("No signing template is configured for {0}.").format(document_type))
 
-    # Pull the employee's identity for the signer role. Only what's needed.
+    roles = SIGNER_ROLES.get(document_type)
+    if not roles:
+        frappe.throw(_("No signer roles are configured for {0}.").format(document_type))
+
+    employee_role = roles["employee_role"]
+    second_role = roles.get("second_role")
+
+    # Pull the employee's identity for the employee signer role.
     emp = frappe.get_doc("Employee", employee)
     signer_name = emp.employee_name
     signer_email = emp.company_email or emp.personal_email
     if not signer_email:
         frappe.throw(_("Employee {0} has no email address for signing.").format(employee))
 
-    # ---- Build signers ----------------------------------------------------
-    # This template ("Employee Technology Responsibility Agreement") has TWO
-    # roles: "Employee" (step 1) and "Manager" (step 2). Both roles must be
-    # supplied or the live create call can stall waiting for the missing one.
-    #
-    # In TEST_MODE every role is pointed at TEST_EMAIL so the only person who
-    # ever receives a real request is you. In production this is where the
-    # Manager's REAL email would come from (e.g. the employee's reporting
-    # manager / HR), and the employee's own details fill the Employee role.
+    # ---- Build signers using this template's REAL role names --------------
     if TEST_MODE:
-        if TEST_EMAIL.startswith("REPLACE_WITH"):
-            frappe.throw(_("Set TEST_EMAIL to your own inbox before testing."))
-        signers = [
-            {"role": "Employee", "name": "Test Employee", "email": TEST_EMAIL},
-            {"role": "Manager",  "name": "Test Manager",  "email": TEST_MANAGER_EMAIL},
-        ]
+        signers = [{"role": employee_role, "name": "Test Employee", "email": TEST_EMAIL}]
+        if second_role:
+            signers.append({"role": second_role, "name": "Test Signer", "email": TEST_MANAGER_EMAIL})
     else:
-        # Production wiring (not exercised yet): real employee on Employee role,
-        # real manager on Manager role. Resolve the manager before flipping
-        # TEST_MODE off — do not ship with the Manager hardcoded.
-        manager_email = _resolve_manager_email(emp)
-        signers = [
-            {"role": "Employee", "name": signer_name,   "email": signer_email},
-            {"role": "Manager",  "name": "HR Manager",  "email": manager_email},
-        ]
+        signers = [{"role": employee_role, "name": signer_name, "email": signer_email}]
+        if second_role:
+            second_email = _resolve_manager_email(emp)
+            signers.append({"role": second_role, "name": "HR / Employer", "email": second_email})
 
     payload = {
         "template_id": template_id,
@@ -139,9 +131,7 @@ def generate_signing_session(employee: str, document_type: str) -> dict:
         "signers": signers,
     }
 
-    # Xodo/eversign authenticates via GET params on the URL, NOT the JSON body.
-    # access_key and business_id must be in the query string or the API
-    # rejects the call with code 101 "missing_access_key" before reading body.
+    # eversign authenticates via GET params on the URL, NOT the JSON body.
     auth_params = {"access_key": api_key, "business_id": business_id}
 
     try:
@@ -158,9 +148,14 @@ def generate_signing_session(employee: str, document_type: str) -> dict:
         frappe.log_error(frappe.get_traceback(), "Xodo signing session failed")
         frappe.throw(_("Could not start the signing session. Please try again."))
 
-    # The embedded signing URL lives on the signer object in the response.
-    # Shape per Xodo docs: data["signers"][n]["embedded_signing_url"].
-    url = _extract_embedded_url(data)
+    # If eversign returned an application-level error, surface it clearly.
+    if isinstance(data, dict) and data.get("success") is False:
+        frappe.log_error(json.dumps(data)[:1000], "Xodo returned an error")
+        err = (data.get("error") or {}).get("type") or "Unknown error"
+        frappe.throw(_("Signing service error: {0}").format(err))
+
+    # Hand the iframe the EMPLOYEE role's embedded URL specifically.
+    url = _extract_embedded_url(data, employee_role)
     if not url:
         frappe.log_error(json.dumps(data)[:1000], "Xodo: no embedded URL in response")
         frappe.throw(_("Signing session was created but no embed URL was returned."))
@@ -171,31 +166,26 @@ def generate_signing_session(employee: str, document_type: str) -> dict:
     }
 
 
-def _extract_embedded_url(data: dict):
-    """Find the EMBEDDED signing URL for the Employee role in the Xodo response.
+def _extract_embedded_url(data: dict, employee_role: str):
+    """Find the EMBEDDED signing URL for the employee's role in the response.
 
-    With two signers, we must hand the iframe the Employee's URL specifically
-    (not just the first signer that happens to have one). We match on role,
-    then fall back to the first available URL, then the top level.
+    Match on the employee role name first (New Hire, Contractor, etc.), then
+    fall back to the first available URL, then the top level.
     """
     signers = data.get("signers") or []
     for signer in signers:
-        if signer.get("role") == "Employee" and signer.get("embedded_signing_url"):
+        if signer.get("role") == employee_role and signer.get("embedded_signing_url"):
             return signer["embedded_signing_url"]
     for signer in signers:
         if signer.get("embedded_signing_url"):
             return signer["embedded_signing_url"]
-    # Some responses expose it at the top level depending on flow/version.
     return data.get("embedded_signing_url")
 
 
 def _resolve_manager_email(emp) -> str:
-    """Resolve the real Manager-role email for PRODUCTION (TEST_MODE = False).
+    """Resolve the second-signer (Employer/HR) email for PRODUCTION.
 
-    NOT exercised during testing. Before going live, decide the real source:
-    e.g. the employee's `reports_to` manager's user/email, or a fixed HR
-    address per company. Left unimplemented on purpose so the choice is made
-    deliberately rather than defaulted.
+    Reads a fixed HR signing address from the employee's Company record.
     """
     company_hr_email = frappe.db.get_value("Company", emp.company, "custom_hr_signing_email")
     if not company_hr_email:
